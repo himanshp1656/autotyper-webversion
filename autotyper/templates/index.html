@@ -1,0 +1,271 @@
+{% extends "layout.html" %}
+{% load static %}
+
+{% block title %}
+    AutoTyper
+{% endblock %}
+
+{% block stylesheet %}
+    <style>
+        body {
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .form-container, .right-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 0 10px;
+        }
+
+        .form-container {
+            max-width: 600px;
+            flex: 2;
+        }
+
+        .right-container {
+            width: 500px;
+            overflow:hidden;
+            flex: 1;
+        }
+
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .hide {
+            display: none;
+        }
+
+        .show {
+            display: block;
+            color: red;
+        }
+
+        .data-item {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .data-item h5 {
+            margin: 0 0 5px;
+        }
+
+        .data-item p {
+            margin: 0;
+        }
+
+        .clear-button {
+            background-color: #dc3545;
+            color: white;
+            padding: 10px 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .clear-button:hover {
+            background-color: #c82333;
+        }
+
+        #warn {
+            font-weight: bold;
+        }
+
+        .data-list {
+            margin-top: 20px;
+        }
+        .footer{
+            background-color: #121212;
+            color:#ccc;
+            padding: 10px 0px;
+            text-align:center;
+        }
+        a{
+            all:unset;
+            cursor:pointer;
+        }
+        a:hover{
+            color:#fff;
+        }
+        .placeholder {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f4f4f9;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .placeholder p {
+            margin: 5px 0;
+        }
+    </style>
+{% endblock %}
+
+{% block leftcontent %}
+    <div class="container">
+        <div class="form-container">
+            <form method='post' id='autoTyperForm' onSubmit='submitHandler()'>
+                {% csrf_token %}
+                <label for="rootkey">Select a Host Key</label>
+                <select name="rootkey" id="rootkey">
+                    <option value="ctrl">ctrl</option>
+                    <option value="alt" selected='true'>alt</option>
+                    <option value="tab">tab</option>
+                </select>
+                <label for="title">Enter a Title to Identify</label>
+                <input type="text" name='title' id='title' placeholder='Title'>
+                <label for="question">Enter Content</label>
+                <textarea name="question" id="question" cols="30" rows="10" placeholder='Enter data to write'></textarea>
+                <input type="hidden" name="alldata" id='alldata'>
+                <p class="hide" id='warn'>You can only add up to 5 elements</p>
+                <button type="button" onClick='add()'>Add</button>
+                <button type="submit">Start Auto Typer</button>
+            </form>
+        </div>
+
+        <div class="right-container">
+            {% if data_list %}
+                <div class='responsedata' id='responsedata'>
+                    <button type="button" class="clear-button" onClick='resetData()'>Clear</button>
+                    {% for data in data_list %}
+                        <div class="data-item">
+                            <h3>{{ data.title }}</h3>
+                            <p>Key: {{ data.keyCombination }}</p>
+                            <p>Text: {{ data.text }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div id="dataContainer" class="data-list" >
+                    <p>* You can add only up to 5 elements.</p>
+                    <p>* Don't try to stop the program in between typing.</p>
+                    <p>* Use the ESC key to stop the program.</p>
+                    <p>* Clear all the previous elements before running the program again.</p>
+                    <p>* It is recommended to refresh if any issue or bug arises.</p>
+                    <p>* If you encounter any significant bugs, please feel free to notify me. You can reach out to me through my GitHub profile, linked in the footer.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <div class='footer'>
+        <h6><a href="https://github.com/rohit-kumar-72">developed by @rohit-kumar-72</a></h6>
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script>
+        let data = [];
+
+        function add() {
+            const inputField = document.querySelector('#question');
+            const titleField = document.querySelector('#title');
+            const rootkeyField = document.querySelector('#rootkey');
+
+            if(titleField.value===''||inputField.value===''){
+                return 
+            }
+
+            let entry = {
+                keyCombination: `${rootkeyField.value}+${data.length + 1}`,
+                title: titleField.value,
+                text: inputField.value
+            };
+
+            if (data.length < 5) {
+                data.push(entry);
+                updateDataList();
+            } else {
+                document.getElementById('warn').classList.remove("hide");
+                document.getElementById('warn').classList.add("show");
+            }
+
+            inputField.value = '';
+            titleField.value = '';
+        }
+
+        function submitHandler() {
+            const alldataField = document.querySelector('#alldata');
+            alldataField.value = JSON.stringify(data);
+            document.getElementById('autoTyperForm').submit();
+        }
+
+        function resetData() {
+            data = [];
+            updateDataList();
+            submitHandler();
+        }
+
+        function updateDataList() {
+            const dataContainer = document.getElementById('dataContainer');
+            const responsedata = document.getElementById('responsedata');
+
+            dataContainer?.innerHTML && (dataContainer.innerText = '');
+            responsedata?.innerHTML && (responsedata.innerText = '');
+
+            if (data.length > 0) {
+                data.forEach(item => {
+                    const dataItem = document.createElement('div');
+                    dataItem.classList.add('data-item');
+
+                    const title = document.createElement('h5');
+                    title.innerText = item.title;
+
+                    const keyCombination = document.createElement('p');
+                    keyCombination.innerText = `Key: ${item.keyCombination}`;
+
+                    const text = document.createElement('p');
+                    text.innerText = item.text.substring(0,20)+"...";
+
+                    dataItem.appendChild(title);
+                    dataItem.appendChild(keyCombination);
+                    dataItem.appendChild(text);
+
+                    dataContainer.appendChild(dataItem);
+                });
+
+                const clearButton = document.createElement('button');
+                clearButton.classList.add('clear-button');
+                clearButton.innerText = 'Clear';
+                clearButton.addEventListener('click', resetData);
+
+                dataContainer.appendChild(clearButton);
+            } 
+        }
+    </script>
+{% endblock %}
