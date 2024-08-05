@@ -1,0 +1,14 @@
+{
+    "builds": [
+      {
+        "src": "autotyper/wsgi.py",
+        "use": "@vercel/python"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/(.*)",
+        "dest": "autotyper/wsgi.py"
+      }
+    ]
+}
